@@ -1,11 +1,16 @@
-use std::env::args;
-use std::fs::File;
+mod parser;
 
-fn main() {
+use std::env::args;
+use std::error::Error;
+use std::fs::read_to_string;
+
+fn main() -> Result<(), Box<dyn Error>> {
   let proto_path = args()
     .nth(1)
-    .expect("Missing file path");
-  let proto_file = File::open(proto_path).expect("File not found");
+    .expect("Missing file path argument");
+  let proto_file = read_to_string(proto_path)?;
 
-  println!("{:?}", proto_file);
+  parser::parse(proto_file)?;
+
+  Ok(())
 }
