@@ -1,4 +1,4 @@
-use fancy_regex::Regex;
+use fancy_regex::{Error as RegError, Regex};
 use std::error::Error;
 
 pub enum Block {
@@ -36,30 +36,17 @@ impl Kind {}
 //   }
 // }
 
-pub fn extract_tokens(input: &str) -> Vec<&str> {
-  let lines = input.lines();
-  let mut result: Vec<&str> = Vec::new();
+pub fn strip_comments(input: &str) -> Result<String, RegError> {
+  let re = Regex::new(r"//.*")?;
+  let result = re.replace_all(input, "").into_owned();
 
-  for line in lines {
-    if let Some((tokens, ..)) = line.split_once("//") {
-      result.push(tokens);
-    } else {
-      result.push(line);
-    }
-  }
-
-  result
-    .iter()
-    .flat_map(|v| v.split_whitespace())
-    .collect()
+  Ok(result)
 }
 
-pub fn parse(input: String) -> Result<String, Box<dyn Error>> {
-  let re = Regex::new(r"[[:alnum:]]+|[[:punct:]]")?;
-  let tokens = extract_tokens(input.as_str());
-  let result = tokens.join(" ");
-  let matches: Vec<&str> = re
-    .captures_iter(result.as_str())
+pub fn extract_tokens(input: &str) -> Result<Vec<&str>, RegError> {
+  let re = Regex::new("[[:alnum:]]+|[[:punct:]]")?;
+  let result = re
+    .captures_iter(&input)
     .flat_map(|v| -> Vec<&str> {
       v.unwrap()
         .iter()
@@ -68,7 +55,14 @@ pub fn parse(input: String) -> Result<String, Box<dyn Error>> {
     })
     .collect();
 
-  println!("{:?}", matches);
+  Ok(result)
+}
+
+pub fn parse(input: String) -> Result<String, Box<dyn Error>> {
+  let stripped = strip_comments(&input)?;
+  let tokens = extract_tokens(&stripped)?;
+
+  println!("{:?}", tokens);
   // let mut token_iter = tokens.iter();
   // let mut kinds: Vec<Kind> = Vec::new();
   // let mut blocks: Vec<Block> = Vec::new();
