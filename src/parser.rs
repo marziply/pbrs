@@ -1,20 +1,24 @@
+use fancy_regex::Regex;
 use std::error::Error;
 
-#[derive(Debug)]
+pub enum Block {
+  Expression(Vec<String>),
+  Scope(Vec<String>, Box<Block>)
+}
+
 pub enum Kind {
-  Service,
-  Message,
-  Syntax,
-  Package,
-  Comment
+  Service(Field),
+  Message(Vec<Field>),
+  Syntax(String),
+  Package(String)
 }
 
-enum Block {
-  Expression(String),
-  Scope(Box<Block>)
+pub enum Field {
+  Property(Scalar),
+  Rpc(String, String, String)
 }
 
-enum Scalar {
+pub enum Scalar {
   Int32,
   Bool,
   r#String
@@ -22,15 +26,15 @@ enum Scalar {
 
 impl Kind {}
 
-pub fn identify_kind(input: &str) -> Kind {
-  match input {
-    "syntax" => Kind::Syntax,
-    "package" => Kind::Package,
-    "service" => Kind::Service,
-    "message" => Kind::Message,
-    _ => panic!("Invalid expression")
-  }
-}
+// pub fn identify_kind(input: &str) -> Kind {
+//   match input {
+//     "syntax" => Kind::Syntax,
+//     "package" => Kind::Package,
+//     "service" => Kind::Service,
+//     "message" => Kind::Message,
+//     _ => panic!("Invalid expression")
+//   }
+// }
 
 pub fn extract_tokens(input: &str) -> Vec<&str> {
   let lines = input.lines();
@@ -51,14 +55,25 @@ pub fn extract_tokens(input: &str) -> Vec<&str> {
 }
 
 pub fn parse(input: String) -> Result<String, Box<dyn Error>> {
+  let re = Regex::new(r"[[:alnum:]]+|[[:punct:]]")?;
   let tokens = extract_tokens(input.as_str());
-  let blocks: Vec<Block> = Vec::new();
+  let result = tokens.join(" ");
+  let matches: Vec<&str> = re
+    .captures_iter(result.as_str())
+    .flat_map(|v| -> Vec<&str> {
+      v.unwrap()
+        .iter()
+        .map(|i| i.unwrap().as_str())
+        .collect()
+    })
+    .collect();
 
-  // for token in tokens {
-  //   let kind = identify_kind(token);
-  // }
-
-  println!("{:?}", tokens);
+  println!("{:?}", matches);
+  // let mut token_iter = tokens.iter();
+  // let mut kinds: Vec<Kind> = Vec::new();
+  // let mut blocks: Vec<Block> = Vec::new();
+  //
+  // for token in tokens {}
 
   Ok(String::from("foo"))
 }
