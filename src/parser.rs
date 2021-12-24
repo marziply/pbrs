@@ -1,30 +1,36 @@
-use fancy_regex::{Error as RegError, Regex};
+use fancy_regex::{Error as RegexError, Regex};
+use std::cell::RefCell;
 use std::error::Error;
 
-pub enum Block {
-  Expression(Vec<String>),
-  Scope(Vec<String>, Box<Block>)
-}
+type BlockOption<'a> = Option<Vec<Block<'a>>>;
 
-pub enum Kind {
-  Service(Field),
-  Message(Vec<Field>),
+#[derive(Debug)]
+pub struct Block<'a>(Vec<&'a str>, BlockOption<'a>);
+
+#[allow(dead_code)]
+#[derive(Debug)]
+pub enum Kind<'a> {
+  Service(Block<'a>),
+  Message(Block<'a>),
   Syntax(String),
   Package(String)
 }
 
-pub enum Field {
+#[allow(dead_code)]
+#[derive(Debug)]
+pub enum Field<'a> {
   Property(Scalar),
-  Rpc(String, String, String)
+  Rpc(String, String, String),
+  Kind(Kind<'a>)
 }
 
+#[allow(dead_code)]
+#[derive(Debug)]
 pub enum Scalar {
   Int32,
   Bool,
   r#String
 }
-
-impl Kind {}
 
 // pub fn identify_kind(input: &str) -> Kind {
 //   match input {
@@ -36,17 +42,17 @@ impl Kind {}
 //   }
 // }
 
-pub fn strip_comments(input: &str) -> Result<String, RegError> {
+pub fn strip_comments(raw_str: &str) -> Result<String, RegexError> {
   let re = Regex::new(r"//.*")?;
-  let result = re.replace_all(input, "").into_owned();
+  let result = re.replace_all(raw_str, "").into_owned();
 
   Ok(result)
 }
 
-pub fn extract_tokens(input: &str) -> Result<Vec<&str>, RegError> {
+pub fn extract_tokens(raw_str: &str) -> Result<Vec<&str>, RegexError> {
   let re = Regex::new("[[:alnum:]]+|[[:punct:]]")?;
   let result = re
-    .captures_iter(&input)
+    .captures_iter(&raw_str)
     .flat_map(|v| -> Vec<&str> {
       v.unwrap()
         .iter()
@@ -58,16 +64,43 @@ pub fn extract_tokens(input: &str) -> Result<Vec<&str>, RegError> {
   Ok(result)
 }
 
+struct Lexer<'a, T> {
+  iter: &'a mut T
+}
+
+impl<'a, T> Lexer<'a, T>
+where
+  T: Iterator<Item = &'a str>
+{
+  pub fn group_tokens(&mut self) -> BlockOption<'a> {
+    let tokens: RefCell<Vec<&str>> = RefCell::new(Vec::new());
+    let mut blocks = Vec::new();
+    let mut append_block = |ch: BlockOption<'a>| {
+      blocks.push(Block(tokens.borrow_mut().drain(..).collect(), ch))
+    };
+
+    while let Some(token) = self.iter.next() {
+      match token {
+        ";" => append_block(None),
+        "{" => append_block(self.group_tokens()),
+        "}" => break,
+        _ => tokens.borrow_mut().push(token)
+      }
+    }
+
+    Some(blocks)
+  }
+}
+
 pub fn parse(input: String) -> Result<String, Box<dyn Error>> {
   let stripped = strip_comments(&input)?;
-  let tokens = extract_tokens(&stripped)?;
+  let extracted = extract_tokens(&stripped)?;
+  let mut lexer = Lexer {
+    iter: &mut extracted.iter().map(|v| v.to_owned())
+  };
+  let groups = lexer.group_tokens();
 
-  println!("{:?}", tokens);
-  // let mut token_iter = tokens.iter();
-  // let mut kinds: Vec<Kind> = Vec::new();
-  // let mut blocks: Vec<Block> = Vec::new();
-  //
-  // for token in tokens {}
+  println!("{:?}", groups.unwrap());
 
   Ok(String::from("foo"))
 }
