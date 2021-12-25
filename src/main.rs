@@ -1,3 +1,4 @@
+mod lexer;
 mod parser;
 
 use std::env::args;
@@ -10,7 +11,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     .expect("Missing file path argument");
   let proto_file = read_to_string(proto_path)?;
 
-  parser::parse(proto_file)?;
+  lexer::parse(proto_file)?;
 
   Ok(())
 }
