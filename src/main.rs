@@ -10,7 +10,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     .nth(1)
     .expect("Missing file path argument");
   let proto_file = read_to_string(proto_path)?;
-  let blocks = lexer::parse(proto_file)?;
+  let blocks = lexer::blocks(proto_file)?;
 
   println!("{:?}", blocks);
 
