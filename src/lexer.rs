@@ -3,45 +3,10 @@ mod tokenise;
 use std::cell::RefCell;
 use std::error::Error;
 
-type BlockOption<'a> = Option<Vec<Block<'a>>>;
+type BlockOption = Option<Vec<Block>>;
 
 #[derive(Debug)]
-pub struct Block<'a>(Vec<&'a str>, BlockOption<'a>);
-
-#[allow(dead_code)]
-#[derive(Debug)]
-pub enum Kind<'a> {
-  Service(Block<'a>),
-  Message(Block<'a>),
-  Syntax(String),
-  Package(String)
-}
-
-#[allow(dead_code)]
-#[derive(Debug)]
-pub enum Field<'a> {
-  Property(Scalar),
-  Rpc(String, String, String),
-  Kind(Kind<'a>)
-}
-
-#[allow(dead_code)]
-#[derive(Debug)]
-pub enum Scalar {
-  Int32,
-  Bool,
-  r#String
-}
-
-// pub fn identify_kind(input: &str) -> Kind {
-//   match input {
-//     "syntax" => Kind::Syntax,
-//     "package" => Kind::Package,
-//     "service" => Kind::Service,
-//     "message" => Kind::Message,
-//     _ => panic!("Invalid expression")
-//   }
-// }
+pub struct Block(Vec<String>, BlockOption);
 
 struct Lexer<'a, T> {
   iter: &'a mut T
@@ -49,19 +14,19 @@ struct Lexer<'a, T> {
 
 impl<'a, T> Lexer<'a, T>
 where
-  T: Iterator<Item = &'a str>
+  T: Iterator<Item = String>
 {
-  pub fn group_tokens(&mut self) -> BlockOption<'a> {
-    let tokens: RefCell<Vec<&str>> = RefCell::new(Vec::new());
+  pub fn group_tokens(&mut self) -> BlockOption {
+    let tokens: RefCell<Vec<String>> = RefCell::new(Vec::new());
     let mut blocks = Vec::new();
-    let mut push = |ch: BlockOption<'a>| {
+    let mut push = |ch: BlockOption| {
       let drained_tokens = tokens.borrow_mut().drain(..).collect();
 
       blocks.push(Block(drained_tokens, ch));
     };
 
     while let Some(token) = self.iter.next() {
-      match token {
+      match token.as_str() {
         ";" => push(None),
         "{" => push(self.group_tokens()),
         "}" => break,
@@ -71,19 +36,15 @@ where
 
     Some(blocks)
   }
-
-  // pub fn match_token(&mut self, callback: impl FnMut(BlockOption)) {}
 }
 
-pub fn parse(input: String) -> Result<String, Box<dyn Error>> {
+pub fn parse<'a>(input: String) -> Result<Vec<Block>, Box<dyn Error>> {
   let stripped = tokenise::strip_comments(&input)?;
   let extracted = tokenise::extract_tokens(&stripped)?;
   let mut lexer = Lexer {
     iter: &mut extracted.iter().map(|v| v.to_owned())
   };
-  let groups = lexer.group_tokens();
+  let blocks: Vec<Block> = lexer.group_tokens().unwrap();
 
-  println!("{:?}", groups.unwrap());
-
-  Ok(String::from("foo"))
+  Ok(blocks)
 }
