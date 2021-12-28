@@ -6,13 +6,14 @@ use std::error::Error;
 use std::fs::read_to_string;
 
 fn main() -> Result<(), Box<dyn Error>> {
-  let proto_path = args()
+  let path = args()
     .nth(1)
     .expect("Missing file path argument");
-  let proto_file = read_to_string(proto_path)?;
-  let blocks = lexer::blocks(proto_file)?;
+  let file = read_to_string(path)?;
+  let blocks = lexer::translate(file)?;
+  let code = parser::translate(blocks);
 
-  println!("{:?}", blocks);
+  println!("{:?}", code);
 
   Ok(())
 }

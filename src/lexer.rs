@@ -160,7 +160,7 @@ fn build_blocks(group: Vec<TokenGroup>) -> Vec<Block> {
     .collect()
 }
 
-pub fn blocks<'a>(input: String) -> Result<Vec<Block>, Box<dyn Error>> {
+pub fn translate<'a>(input: String) -> Result<Vec<Block>, Box<dyn Error>> {
   let stripped = tokenise::strip_comments(&input)?;
   let extracted = tokenise::extract_tokens(&stripped)?;
   let mut iter = extracted.iter().map(|v| v.to_owned());

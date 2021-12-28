@@ -1,7 +1,5 @@
-// use super::lexer::{Block, BlockOption};
-//
-// pub fn translate(input: Vec<Block>) -> Vec<Kind> {
-//   let mut result: Vec<Kind> = Vec::new();
-//
-//   result
-// }
+use super::lexer::Block;
+
+pub fn translate(blocks: Vec<Block>) -> String {
+  String::from("")
+}
