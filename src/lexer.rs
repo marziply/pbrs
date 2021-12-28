@@ -93,20 +93,19 @@ fn identify_fields(children: TokenChildren) -> Vec<Field> {
     .iter()
     .cloned()
     .map(|TokenGroup(tokens, groups)| match tokens[0].as_str() {
+      "message" | "service" => {
+        let (identifier, kind) = identify_kind(tokens.clone(), groups);
+
+        Field::Block(Block {
+          tokens: tokens.clone(),
+          identifier,
+          kind
+        })
+      }
       "rpc" => Field::Rpc {
         name: tokens[1].clone(),
         params: (tokens[3].clone(), tokens[7].clone())
       },
-      "message" | "service" => {
-        let (block_id, block_k) = identify_kind(tokens.clone(), groups);
-        let block = Block {
-          tokens: tokens.clone(),
-          identifier: block_id,
-          kind: block_k
-        };
-
-        Field::Block(block)
-      }
       _ => Field::Property {
         r#type: identify_scalar(tokens[0].clone()),
         name: tokens[1].clone(),
