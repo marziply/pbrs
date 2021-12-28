@@ -8,8 +8,8 @@ pub type TokenChildren = Option<Vec<TokenGroup>>;
 #[derive(Debug, Clone)]
 pub struct TokenGroup(pub Vec<String>, pub TokenChildren);
 
-#[allow(dead_code)]
-#[derive(Debug)]
+// Protobuf "kinds" to represent each type of element available within the
+// syntax
 pub enum Kind {
   Service(Vec<Field>),
   Message(Vec<Field>),
@@ -18,8 +18,8 @@ pub enum Kind {
   Unknown
 }
 
-#[allow(dead_code)]
-#[derive(Debug)]
+// Available field types within kind blocks, AKA anything enclosed in "{}",
+// including other blocks as this is valid syntax in Protobuf
 pub enum Field {
   Block(Block),
   Property {
@@ -33,18 +33,15 @@ pub enum Field {
   }
 }
 
-#[allow(dead_code)]
-#[derive(Debug)]
+// Basic scalar types available for fields within a block
 pub enum Scalar {
   Int32,
   Bool,
   r#String
 }
 
-// Block of code represented as an enum of varying length token strings with
-// an optional vector of another enum of itself that represents scoped
-// children within the source code
-#[derive(Debug)]
+// Any "block" of code, which can be either a simple expression or a scoped
+// block of code that's wrapped with "{}"
 pub struct Block {
   pub tokens: Vec<String>,
   pub identifier: Option<String>,
@@ -125,10 +122,8 @@ fn identify_kind(
   tokens: Vec<String>,
   children: TokenChildren
 ) -> (Option<String>, Kind) {
-  let id = tokens[0].as_str();
-
-  match id {
-    "service" | "message" => {
+  match tokens[0].as_str() {
+    id @ ("service" | "message") => {
       let name = Some(tokens[1].clone());
       let fields = identify_fields(children);
 
