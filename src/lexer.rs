@@ -14,7 +14,8 @@ pub enum Kind {
   Service(Vec<Field>),
   Message(Vec<Field>),
   Syntax(String),
-  Package(String)
+  Package(String),
+  Unknown
 }
 
 #[allow(dead_code)]
@@ -89,7 +90,7 @@ fn identify_scalar(token: String) -> Scalar {
   }
 }
 
-pub fn identify_fields(children: TokenChildren) -> Vec<Field> {
+fn identify_fields(children: TokenChildren) -> Vec<Field> {
   children
     .unwrap_or_else(|| Vec::new())
     .iter()
@@ -120,24 +121,26 @@ pub fn identify_fields(children: TokenChildren) -> Vec<Field> {
     .collect()
 }
 
-fn scoped_kind(
-  token: String,
-  children: TokenChildren,
-  callback: impl FnOnce(Vec<Field>) -> Kind
-) -> (Option<String>, Kind) {
-  (Some(token), callback(identify_fields(children)))
-}
-
 fn identify_kind(
   tokens: Vec<String>,
   children: TokenChildren
 ) -> (Option<String>, Kind) {
-  match tokens[0].as_str() {
-    "service" => scoped_kind(tokens[1].clone(), children, |v| Kind::Service(v)),
-    "message" => scoped_kind(tokens[1].clone(), children, |v| Kind::Message(v)),
+  let id = tokens[0].as_str();
+
+  match id {
+    "service" | "message" => {
+      let name = Some(tokens[1].clone());
+      let fields = identify_fields(children);
+
+      match id {
+        "service" => (name, Kind::Service(fields)),
+        "message" => (name, Kind::Message(fields)),
+        _ => unreachable!()
+      }
+    }
     "syntax" => (None, Kind::Syntax(tokens[3].clone())),
     "package" => (None, Kind::Package(tokens[1].clone())),
-    _ => panic!("Invalid block expression")
+    _ => (None, Kind::Unknown)
   }
 }
 
