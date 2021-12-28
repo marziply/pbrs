@@ -48,9 +48,10 @@ pub struct Block {
   pub kind: Kind
 }
 
-fn group_tokens<'a>(
-  iter: &'a mut impl Iterator<Item = String>
-) -> TokenChildren {
+fn group_tokens<'a, T>(iter: &'a mut T) -> TokenChildren
+where
+  T: Iterator<Item = String>
+{
   // All sibling tokens of the current tree node
   let tokens: RefCell<Vec<String>> = RefCell::new(Vec::new());
   let mut groups = Vec::new();
@@ -157,8 +158,7 @@ fn build_blocks(group: Vec<TokenGroup>) -> Vec<Block> {
 pub fn translate<'a>(input: String) -> Result<Vec<Block>, Box<dyn Error>> {
   let stripped = tokenise::strip_comments(&input)?;
   let extracted = tokenise::extract_tokens(&stripped)?;
-  let mut iter = extracted.iter().map(|v| v.to_owned());
-  let groups = group_tokens(&mut iter);
+  let groups = group_tokens(&mut extracted.iter().cloned());
 
   Ok(build_blocks(groups.unwrap()))
 }
