@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn Error>> {
   let blocks = lexer::translate(file)?;
   let code = parser::translate(blocks);
 
-  println!("{:?}", code);
+  println!("{}", code);
 
   Ok(())
 }
