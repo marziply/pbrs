@@ -81,9 +81,9 @@ impl<'a> Node<'a> {
   }
 }
 
-fn group_tokens<'a, 'b, T>(iter: &'b mut T) -> TokenChildren<'a>
+fn group_tokens<'inner, 'outer, T>(iter: &'outer mut T) -> TokenChildren<'inner>
 where
-  T: Iterator<Item = Rc<&'a str>>
+  T: Iterator<Item = Rc<&'inner str>>
 {
   // All sibling tokens of the current tree node
   let mut node = Node::default();
