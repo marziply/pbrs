@@ -102,8 +102,8 @@ where
   Some(node.groups)
 }
 
-fn identify_scalar(token: String) -> Scalar {
-  match token.as_str() {
+fn identify_scalar(token: &str) -> Scalar {
+  match token {
     "int32" => Scalar::Int32,
     "string" => Scalar::r#String,
     "bool" => Scalar::Bool,
@@ -130,7 +130,7 @@ fn identify_fields<'a>(children: TokenChildren<'a>) -> Vec<Field> {
         params: (tokens[3].to_string(), tokens[7].to_string())
       }),
       val => Field::Property(Property {
-        r#type: identify_scalar(val.to_string()),
+        r#type: identify_scalar(val),
         name: tokens[1].to_string(),
         value: tokens[3]
           .parse()
