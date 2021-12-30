@@ -5,11 +5,12 @@ use std::error::Error;
 
 pub type TokenChildren = Option<Vec<TokenGroup>>;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct TokenGroup(pub Vec<String>, pub TokenChildren);
 
 // Protobuf "kinds" to represent each type of element available within the
 // syntax
+#[derive(Clone)]
 pub enum Kind {
   Service(Vec<Field>),
   Message(Vec<Field>),
@@ -18,22 +19,30 @@ pub enum Kind {
   Unknown
 }
 
+#[derive(Clone)]
+pub struct Property {
+  pub name: String,
+  pub r#type: Scalar,
+  pub value: i32
+}
+
+#[derive(Clone)]
+pub struct Rpc {
+  pub name: String,
+  pub params: (String, String)
+}
+
 // Available field types within kind blocks, AKA anything enclosed in "{}",
 // including other blocks as this is valid syntax in Protobuf
+#[derive(Clone)]
 pub enum Field {
   Block(Block),
-  Property {
-    name: String,
-    r#type: Scalar,
-    value: i32
-  },
-  Rpc {
-    name: String,
-    params: (String, String)
-  }
+  Property(Property),
+  Rpc(Rpc)
 }
 
 // Basic scalar types available for fields within a block
+#[derive(Clone)]
 pub enum Scalar {
   Int32,
   Bool,
@@ -42,6 +51,7 @@ pub enum Scalar {
 
 // Any "block" of code, which can be either a simple expression or a scoped
 // block of code that's wrapped with "{}"
+#[derive(Clone)]
 pub struct Block {
   pub tokens: Vec<String>,
   pub identifier: Option<String>,
@@ -64,7 +74,7 @@ where
     groups.push(group);
   };
 
-  // Continuously iterate over all sibling node within the source code,
+  // Continuously iterate over all sibling nodes within the source code,
   // descending into an iterative callback loop that results in a tree
   // of blocks as deep as the source code is
   while let Some(token) = iter.next() {
@@ -103,17 +113,17 @@ fn identify_fields(children: TokenChildren) -> Vec<Field> {
           kind
         })
       }
-      "rpc" => Field::Rpc {
+      "rpc" => Field::Rpc(Rpc {
         name: tokens[1].clone(),
         params: (tokens[3].clone(), tokens[7].clone())
-      },
-      _ => Field::Property {
-        r#type: identify_scalar(tokens[0].clone()),
+      }),
+      val @ _ => Field::Property(Property {
+        r#type: identify_scalar(val.to_string()),
         name: tokens[1].clone(),
         value: tokens[3]
           .parse()
           .expect("Invalid value for field")
-      }
+      })
     })
     .collect()
 }

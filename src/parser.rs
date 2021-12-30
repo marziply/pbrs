@@ -1,8 +1,7 @@
-use super::lexer::{Block, Field, Kind, Scalar};
+mod translate;
 
-fn indent(depth: u8) -> String {
-  (0..depth).map(|_| "  ").collect()
-}
+use self::translate::{from_field, into_struct};
+use super::lexer::{Block, Field, Kind, Scalar};
 
 fn parse_prop(scalar: Scalar) -> String {
   let result = match scalar {
@@ -14,76 +13,32 @@ fn parse_prop(scalar: Scalar) -> String {
   result.to_string()
 }
 
-fn parse_fields(fields: Vec<Field>, depth: u8) -> String {
-  let mut result: Vec<String> = Vec::new();
-
-  for field in fields {
-    match field {
-      Field::Block(block) => result.extend(unwrap_block(block, depth + 1)),
-      Field::Property {
-        name,
-        r#type,
-        // Not much can be done with value for now
-        value: _
-      } => {
-        result.push(format!(
-          "{}pub {}: {},",
-          indent(depth),
-          name,
-          parse_prop(r#type)
-        ));
-      }
-      // Field::Rpc {
-      //   name,
-      //   params
-      // } => {}
-      _ => {}
-    }
-  }
-
-  result.join("\n")
+fn parse_fields(fields: Vec<Field>, depth: i8) -> String {
+  fields
+    .iter()
+    .cloned()
+    .map(|v| from_field(v, depth))
+    .collect::<Vec<String>>()
+    .join(",\n")
 }
 
-fn unwrap_block(block: Block, depth: u8) -> Vec<String> {
-  let mut result: Vec<String> = Vec::new();
+fn unwrap_block(block: Block, depth: i8) -> String {
+  let id = block
+    .identifier
+    .unwrap_or_else(|| String::new());
 
   match block.kind {
-    Kind::Service(fields) => {
-      let struct_item = format!(
-        "{}struct {} {{\n{}{}\n{}}}",
-        indent(depth),
-        block.identifier.unwrap(),
-        indent(depth + 1),
-        parse_fields(fields, depth),
-        indent(depth)
-      );
-
-      result.push(struct_item);
-    }
-    Kind::Message(fields) => {
-      let message_item = format!(
-        "{}struct {} {{\n{}{}\n{}}}",
-        indent(depth),
-        block.identifier.unwrap(),
-        indent(depth + 1),
-        parse_fields(fields, depth),
-        indent(depth)
-      );
-
-      result.push(message_item);
-    }
-    _ => {}
+    Kind::Service(fields) => into_struct(id, fields, depth),
+    Kind::Message(fields) => into_struct(id, fields, depth),
+    _ => String::new()
   }
-
-  result
 }
 
 pub fn translate(blocks: Vec<Block>) -> String {
-  let mut result: Vec<String> = Vec::new();
-
-  for block in blocks {
-    result.extend(unwrap_block(block, 0));
-  }
-
-  result.join("\n\n")
+  blocks
+    .iter()
+    .cloned()
+    .map(|v| unwrap_block(v, 0))
+    .collect::<Vec<String>>()
+    .join("\n\n")
 }
