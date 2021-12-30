@@ -2,7 +2,6 @@ mod tokenise;
 
 use std::cell::RefCell;
 use std::error::Error;
-use std::ops::Deref;
 use std::rc::Rc;
 
 pub type TokenChildren<'a> = Option<Vec<TokenGroup<'a>>>;
@@ -96,10 +95,7 @@ where
       ";" => node.push(None),
       "{" => node.push(group_tokens(iter)),
       "}" => break,
-      _ => node
-        .tokens
-        .borrow_mut()
-        .push(token.deref())
+      _ => node.tokens.borrow_mut().push(*token)
     }
   }
 
@@ -120,7 +116,6 @@ fn identify_fields<'a>(children: TokenChildren<'a>) -> Vec<Field> {
     .unwrap_or_else(|| Vec::new())
     .iter()
     .cloned()
-    // .map(|group| group.into_ref())
     .map(|TokenGroup(tokens, groups)| match tokens[0] {
       "message" | "service" => {
         let (identifier, kind) = identify_kind(tokens, groups);
@@ -170,7 +165,6 @@ fn build_blocks<'a>(group: Vec<TokenGroup<'a>>) -> Vec<Block> {
   group
     .iter()
     .cloned()
-    // .map(|group| group.into_ref())
     .map(|TokenGroup(tokens, children)| {
       let (identifier, kind) = identify_kind(tokens, children);
 
