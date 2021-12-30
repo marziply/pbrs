@@ -60,35 +60,50 @@ pub struct Block {
   pub kind: Kind
 }
 
+#[derive(Default)]
+struct Node<'a> {
+  tokens: RefCell<Vec<&'a str>>,
+  groups: Vec<TokenGroup<'a>>
+}
+
+impl<'a> Node<'a> {
+  fn push(&mut self, children: TokenChildren<'a>) {
+    // Drain tokens from tokens array into a new Block that can be pushed
+    // into the blocks array along with siblings of the current tree node
+    let drained = self
+      .tokens
+      .borrow_mut()
+      .drain(..)
+      .collect();
+    let group: TokenGroup<'a> = TokenGroup(drained, children);
+
+    self.groups.push(group);
+  }
+}
+
 fn group_tokens<'a, 'b, T>(iter: &'b mut T) -> TokenChildren<'a>
 where
   T: Iterator<Item = Rc<&'a str>>
 {
   // All sibling tokens of the current tree node
-  let tokens: RefCell<Vec<&'a str>> = RefCell::new(Vec::new());
-  let mut groups = Vec::new();
-  // Drain tokens from tokens array into a new Block that can be pushed
-  // into the blocks array along with siblings of the current tree node
-  let mut push = |ch: TokenChildren<'a>| {
-    let drained = tokens.borrow_mut().drain(..).collect();
-    let group: TokenGroup<'a> = TokenGroup(drained, ch);
-
-    groups.push(group);
-  };
+  let mut node = Node::default();
 
   // Continuously iterate over all sibling nodes within the source code,
   // descending into an iterative callback loop that results in a tree
   // of blocks as deep as the source code is
   while let Some(token) = iter.next() {
     match *token {
-      ";" => push(None),
-      "{" => push(group_tokens(iter)),
+      ";" => node.push(None),
+      "{" => node.push(group_tokens(iter)),
       "}" => break,
-      _ => tokens.borrow_mut().push(token.deref())
+      _ => node
+        .tokens
+        .borrow_mut()
+        .push(token.deref())
     }
   }
 
-  Some(groups)
+  Some(node.groups)
 }
 
 fn identify_scalar(token: String) -> Scalar {
