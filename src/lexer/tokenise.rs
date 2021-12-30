@@ -7,14 +7,14 @@ pub fn strip_comments(raw_str: &str) -> Result<String, RegexError> {
   Ok(result.to_string())
 }
 
-pub fn extract_tokens(raw_str: &str) -> Result<Vec<String>, RegexError> {
+pub fn extract_tokens(raw_str: &str) -> Result<Vec<&str>, RegexError> {
   let re = Regex::new("[[:alnum:]]+|[[:punct:]]")?;
-  let result: Vec<String> = re
-    .captures_iter(&raw_str)
-    .flat_map(|v| -> Vec<String> {
+  let result = re
+    .captures_iter(raw_str)
+    .flat_map(|v| -> Vec<&str> {
       v.unwrap()
         .iter()
-        .map(|i| i.unwrap().as_str().to_string())
+        .map(|i| i.unwrap().as_str())
         .collect()
     })
     .collect();
