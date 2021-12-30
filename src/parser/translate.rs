@@ -1,11 +1,11 @@
 use super::{parse_fields, parse_prop, unwrap_block};
 use crate::lexer::{Field, Kind};
 
-fn indent(depth: i8) -> String {
+fn indent(depth: u8) -> String {
   (0..depth).map(|_| "  ").collect()
 }
 
-pub fn from_field(field: Field, depth: i8) -> String {
+pub fn from_field(field: Field, depth: u8) -> String {
   match field {
     Field::Block(block) => unwrap_block(block, depth),
     Field::Property(prop) => format!(
@@ -22,14 +22,14 @@ pub fn from_field(field: Field, depth: i8) -> String {
   }
 }
 
-pub fn into_field(kind: Kind, depth: i8) -> String {
+pub fn into_field(kind: Kind, depth: u8) -> String {
   String::new()
 }
 
 pub fn into_struct(
   identifier: String,
   fields: Vec<Field>,
-  depth: i8
+  depth: u8
 ) -> String {
   format!(
     "{}struct {} {{\n{}\n{}}}",

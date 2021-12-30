@@ -13,7 +13,7 @@ fn parse_prop(scalar: Scalar) -> String {
   result.to_string()
 }
 
-fn parse_fields(fields: Vec<Field>, depth: i8) -> String {
+fn parse_fields(fields: Vec<Field>, depth: u8) -> String {
   fields
     .iter()
     .cloned()
@@ -22,7 +22,7 @@ fn parse_fields(fields: Vec<Field>, depth: i8) -> String {
     .join(",\n")
 }
 
-fn unwrap_block(block: Block, depth: i8) -> String {
+fn unwrap_block(block: Block, depth: u8) -> String {
   let id = block
     .identifier
     .unwrap_or_else(|| String::new());

@@ -2,6 +2,7 @@ mod tokenise;
 
 use std::cell::RefCell;
 use std::error::Error;
+use std::ops::Deref;
 use std::rc::Rc;
 
 pub type TokenChildren<'a> = Option<Vec<TokenGroup<'a>>>;
@@ -12,11 +13,11 @@ pub struct TokenGroup<'a>(pub Vec<&'a str>, pub TokenChildren<'a>);
 // Protobuf "kinds" to represent each type of element available within the
 // syntax
 #[derive(Clone)]
-pub enum Kind<'a> {
-  Service(Vec<Field<'a>>),
-  Message(Vec<Field<'a>>),
-  Syntax(&'a str),
-  Package(&'a str),
+pub enum Kind {
+  Service(Vec<Field>),
+  Message(Vec<Field>),
+  Syntax(String),
+  Package(String),
   Unknown
 }
 
@@ -36,8 +37,8 @@ pub struct Rpc {
 // Available field types within kind blocks, AKA anything enclosed in "{}",
 // including other blocks as this is valid syntax in Protobuf
 #[derive(Clone)]
-pub enum Field<'a> {
-  Block(Block<'a>),
+pub enum Field {
+  Block(Block),
   Property(Property),
   Rpc(Rpc)
 }
@@ -53,10 +54,10 @@ pub enum Scalar {
 // Any "block" of code, which can be either a simple expression or a scoped
 // block of code that's wrapped with "{}"
 #[derive(Clone)]
-pub struct Block<'a> {
-  pub tokens: Vec<&'a str>,
-  pub identifier: Option<&'a str>,
-  pub kind: Kind<'a>
+pub struct Block {
+  // pub tokens: Vec<&'a str>,
+  pub identifier: Option<String>,
+  pub kind: Kind
 }
 
 fn group_tokens<'a, 'b, T>(iter: &'b mut T) -> TokenChildren<'a>
@@ -64,7 +65,7 @@ where
   T: Iterator<Item = Rc<&'a str>>
 {
   // All sibling tokens of the current tree node
-  let tokens: RefCell<Vec<&str>> = RefCell::new(Vec::new());
+  let tokens: RefCell<Vec<&'a str>> = RefCell::new(Vec::new());
   let mut groups = Vec::new();
   // Drain tokens from tokens array into a new Block that can be pushed
   // into the blocks array along with siblings of the current tree node
@@ -83,7 +84,7 @@ where
       ";" => push(None),
       "{" => push(group_tokens(iter)),
       "}" => break,
-      _ => tokens.borrow_mut().push(*token)
+      _ => tokens.borrow_mut().push(token.deref())
     }
   }
 
@@ -99,17 +100,17 @@ fn identify_scalar(token: String) -> Scalar {
   }
 }
 
-fn identify_fields(children: TokenChildren) -> Vec<Field> {
+fn identify_fields<'a>(children: TokenChildren<'a>) -> Vec<Field> {
   children
     .unwrap_or_else(|| Vec::new())
     .iter()
     .cloned()
+    // .map(|group| group.into_ref())
     .map(|TokenGroup(tokens, groups)| match tokens[0] {
       "message" | "service" => {
-        let (identifier, kind) = identify_kind(tokens.clone(), groups);
+        let (identifier, kind) = identify_kind(tokens, groups);
 
         Field::Block(Block {
-          tokens,
           identifier,
           kind
         })
@@ -132,10 +133,10 @@ fn identify_fields(children: TokenChildren) -> Vec<Field> {
 fn identify_kind<'a>(
   tokens: Vec<&'a str>,
   children: TokenChildren<'a>
-) -> (Option<&'a str>, Kind<'a>) {
+) -> (Option<String>, Kind) {
   match tokens[0] {
     id @ ("service" | "message") => {
-      let name = Some(tokens[1]);
+      let name = Some(tokens[1].to_string());
       let fields = identify_fields(children);
 
       match id {
@@ -144,21 +145,21 @@ fn identify_kind<'a>(
         _ => unreachable!()
       }
     }
-    "syntax" => (None, Kind::Syntax(tokens[3])),
-    "package" => (None, Kind::Package(tokens[1])),
+    "syntax" => (None, Kind::Syntax(tokens[3].to_string())),
+    "package" => (None, Kind::Package(tokens[1].to_string())),
     _ => (None, Kind::Unknown)
   }
 }
 
-fn build_blocks<'a>(group: Vec<TokenGroup<'a>>) -> Vec<Block<'a>> {
+fn build_blocks<'a>(group: Vec<TokenGroup<'a>>) -> Vec<Block> {
   group
     .iter()
     .cloned()
+    // .map(|group| group.into_ref())
     .map(|TokenGroup(tokens, children)| {
-      let (identifier, kind) = identify_kind(tokens.clone(), children);
+      let (identifier, kind) = identify_kind(tokens, children);
 
       Block {
-        tokens,
         identifier,
         kind
       }
@@ -166,10 +167,15 @@ fn build_blocks<'a>(group: Vec<TokenGroup<'a>>) -> Vec<Block<'a>> {
     .collect()
 }
 
-pub fn translate<'a>(input: String) -> Result<Vec<Block<'a>>, Box<dyn Error>> {
+pub fn translate<'a>(input: String) -> Result<Vec<Block>, Box<dyn Error>> {
   let stripped = tokenise::strip_comments(&input)?;
   let extracted = tokenise::extract_tokens(&stripped)?;
-  let groups = group_tokens(&mut extracted.iter().map(|v| Rc::new(*v)));
+  let mut tokens = extracted
+    .iter()
+    .cloned()
+    .map(|v| Rc::new(v));
+  let groups = group_tokens(&mut tokens);
+  let blocks = build_blocks(groups.unwrap());
 
-  Ok(build_blocks(groups.unwrap()))
+  Ok(blocks)
 }
