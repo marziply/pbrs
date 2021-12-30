@@ -23,9 +23,7 @@ fn parse_fields(fields: Vec<Field>, depth: u8) -> String {
 }
 
 fn unwrap_block(block: Block, depth: u8) -> String {
-  let id = block
-    .identifier
-    .unwrap_or_else(|| String::new());
+  let id = block.identifier.unwrap_or_default();
 
   match block.kind {
     Kind::Service(fields) => into_struct(id, fields, depth),

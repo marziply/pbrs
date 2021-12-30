@@ -1,5 +1,7 @@
+mod identifier;
 mod tokenise;
 
+use self::identifier::Identifier;
 use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;
@@ -102,71 +104,12 @@ where
   Some(node.groups)
 }
 
-fn identify_scalar(token: &str) -> Scalar {
-  match token {
-    "int32" => Scalar::Int32,
-    "string" => Scalar::r#String,
-    "bool" => Scalar::Bool,
-    _ => panic!("Unidentified scalar")
-  }
-}
-
-fn identify_fields<'a>(children: TokenChildren<'a>) -> Vec<Field> {
-  children
-    .unwrap_or_else(|| Vec::new())
-    .iter()
-    .cloned()
-    .map(|TokenGroup(tokens, groups)| match tokens[0] {
-      "message" | "service" => {
-        let (identifier, kind) = identify_kind(tokens, groups);
-
-        Field::Block(Block {
-          identifier,
-          kind
-        })
-      }
-      "rpc" => Field::Rpc(Rpc {
-        name: tokens[1].to_string(),
-        params: (tokens[3].to_string(), tokens[7].to_string())
-      }),
-      val => Field::Property(Property {
-        r#type: identify_scalar(val),
-        name: tokens[1].to_string(),
-        value: tokens[3]
-          .parse()
-          .expect("Invalid value for field")
-      })
-    })
-    .collect()
-}
-
-fn identify_kind<'a>(
-  tokens: Vec<&'a str>,
-  children: TokenChildren<'a>
-) -> (Option<String>, Kind) {
-  match tokens[0] {
-    id @ ("service" | "message") => {
-      let name = Some(tokens[1].to_string());
-      let fields = identify_fields(children);
-
-      match id {
-        "service" => (name, Kind::Service(fields)),
-        "message" => (name, Kind::Message(fields)),
-        _ => unreachable!()
-      }
-    }
-    "syntax" => (None, Kind::Syntax(tokens[3].to_string())),
-    "package" => (None, Kind::Package(tokens[1].to_string())),
-    _ => (None, Kind::Unknown)
-  }
-}
-
 fn build_blocks<'a>(group: Vec<TokenGroup<'a>>) -> Vec<Block> {
   group
     .iter()
     .cloned()
     .map(|TokenGroup(tokens, children)| {
-      let (identifier, kind) = identify_kind(tokens, children);
+      let (identifier, kind) = Identifier::create(tokens, children);
 
       Block {
         identifier,
