@@ -12,11 +12,11 @@ pub struct TokenGroup<'a>(pub Vec<&'a str>, pub TokenChildren<'a>);
 // Protobuf "kinds" to represent each type of element available within the
 // syntax
 #[derive(Clone)]
-pub enum Kind {
-  Service(Vec<Field>),
-  Message(Vec<Field>),
-  Syntax(String),
-  Package(String),
+pub enum Kind<'a> {
+  Service(Vec<Field<'a>>),
+  Message(Vec<Field<'a>>),
+  Syntax(&'a str),
+  Package(&'a str),
   Unknown
 }
 
@@ -36,8 +36,8 @@ pub struct Rpc {
 // Available field types within kind blocks, AKA anything enclosed in "{}",
 // including other blocks as this is valid syntax in Protobuf
 #[derive(Clone)]
-pub enum Field {
-  Block(Block),
+pub enum Field<'a> {
+  Block(Block<'a>),
   Property(Property),
   Rpc(Rpc)
 }
@@ -53,10 +53,10 @@ pub enum Scalar {
 // Any "block" of code, which can be either a simple expression or a scoped
 // block of code that's wrapped with "{}"
 #[derive(Clone)]
-pub struct Block {
-  pub tokens: Vec<String>,
-  pub identifier: Option<String>,
-  pub kind: Kind
+pub struct Block<'a> {
+  pub tokens: Vec<&'a str>,
+  pub identifier: Option<&'a str>,
+  pub kind: Kind<'a>
 }
 
 fn group_tokens<'a, 'b, T>(iter: &'b mut T) -> TokenChildren<'a>
@@ -109,10 +109,7 @@ fn identify_fields(children: TokenChildren) -> Vec<Field> {
         let (identifier, kind) = identify_kind(tokens.clone(), groups);
 
         Field::Block(Block {
-          tokens: tokens
-            .iter()
-            .map(|v| v.to_string())
-            .collect(),
+          tokens,
           identifier,
           kind
         })
@@ -121,7 +118,7 @@ fn identify_fields(children: TokenChildren) -> Vec<Field> {
         name: tokens[1].to_string(),
         params: (tokens[3].to_string(), tokens[7].to_string())
       }),
-      val @ _ => Field::Property(Property {
+      val => Field::Property(Property {
         r#type: identify_scalar(val.to_string()),
         name: tokens[1].to_string(),
         value: tokens[3]
@@ -135,10 +132,10 @@ fn identify_fields(children: TokenChildren) -> Vec<Field> {
 fn identify_kind<'a>(
   tokens: Vec<&'a str>,
   children: TokenChildren<'a>
-) -> (Option<String>, Kind) {
+) -> (Option<&'a str>, Kind<'a>) {
   match tokens[0] {
     id @ ("service" | "message") => {
-      let name = Some(tokens[1].to_string());
+      let name = Some(tokens[1]);
       let fields = identify_fields(children);
 
       match id {
@@ -147,13 +144,13 @@ fn identify_kind<'a>(
         _ => unreachable!()
       }
     }
-    "syntax" => (None, Kind::Syntax(tokens[3].to_string())),
-    "package" => (None, Kind::Package(tokens[1].to_string())),
+    "syntax" => (None, Kind::Syntax(tokens[3])),
+    "package" => (None, Kind::Package(tokens[1])),
     _ => (None, Kind::Unknown)
   }
 }
 
-fn build_blocks(group: Vec<TokenGroup>) -> Vec<Block> {
+fn build_blocks<'a>(group: Vec<TokenGroup<'a>>) -> Vec<Block<'a>> {
   group
     .iter()
     .cloned()
@@ -161,10 +158,7 @@ fn build_blocks(group: Vec<TokenGroup>) -> Vec<Block> {
       let (identifier, kind) = identify_kind(tokens.clone(), children);
 
       Block {
-        tokens: tokens
-          .iter()
-          .map(|v| v.to_string())
-          .collect(),
+        tokens,
         identifier,
         kind
       }
@@ -172,7 +166,7 @@ fn build_blocks(group: Vec<TokenGroup>) -> Vec<Block> {
     .collect()
 }
 
-pub fn translate<'a>(input: String) -> Result<Vec<Block>, Box<dyn Error>> {
+pub fn translate<'a>(input: String) -> Result<Vec<Block<'a>>, Box<dyn Error>> {
   let stripped = tokenise::strip_comments(&input)?;
   let extracted = tokenise::extract_tokens(&stripped)?;
   let groups = group_tokens(&mut extracted.iter().map(|v| Rc::new(*v)));
