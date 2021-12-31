@@ -1,7 +1,7 @@
 mod identifier;
 mod tokenise;
 
-use self::identifier::Identifier;
+use identifier::Identifier;
 use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;

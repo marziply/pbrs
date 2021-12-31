@@ -1,7 +1,7 @@
-mod translate;
+mod stringify;
 
-use self::translate::{from_field, into_struct};
 use super::lexer::{Block, Field, Kind, Scalar};
+use stringify::{from_field, into_struct};
 
 fn parse_prop(scalar: Scalar) -> String {
   let result = match scalar {
