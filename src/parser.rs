@@ -3,7 +3,7 @@ mod stringify;
 use self::stringify::into_trait;
 
 use super::lexer::{Block, Field, Kind, Scalar};
-use stringify::{from_field, into_struct};
+use stringify::{from_field, into_mod, into_struct};
 
 fn parse_prop(scalar: Scalar) -> String {
   let result = match scalar {
@@ -30,6 +30,7 @@ fn unwrap_block(block: Block, depth: u8) -> Option<String> {
   match block.kind {
     Kind::Service(fields) => Some(into_trait(id, fields, depth)),
     Kind::Message(fields) => Some(into_struct(id, fields, depth)),
+    Kind::Package(name) => Some(into_mod(id, fields, depth)),
     _ => None
   }
 }

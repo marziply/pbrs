@@ -1,4 +1,53 @@
-use super::{Block, Field, Kind, Property, Rpc, Scalar, TokenChildren};
+use super::TokenChildren;
+
+// Protobuf "kinds" to represent each type of element available within the
+// syntax
+#[derive(Clone)]
+pub enum Kind {
+  Service(Vec<Field>),
+  Message(Vec<Field>),
+  Package(String),
+  Syntax(String),
+  Unknown
+}
+
+#[derive(Clone)]
+pub struct Property {
+  pub name: String,
+  pub r#type: Scalar,
+  pub value: i32
+}
+
+#[derive(Clone)]
+pub struct Rpc {
+  pub name: String,
+  pub params: (String, String)
+}
+
+// Available field types within kind blocks, AKA anything enclosed in "{}",
+// including other blocks as this is valid syntax in Protobuf
+#[derive(Clone)]
+pub enum Field {
+  Block(Block),
+  Property(Property),
+  Rpc(Rpc)
+}
+
+// Basic scalar types available for fields within a block
+#[derive(Clone)]
+pub enum Scalar {
+  Int32,
+  Bool,
+  r#String
+}
+
+// Any "block" of code, which can be either a simple expression or a scoped
+// block of code that's wrapped with "{}"
+#[derive(Clone)]
+pub struct Block {
+  pub identifier: Option<String>,
+  pub kind: Kind
+}
 
 pub struct Identifier<'a> {
   pub tokens: Vec<&'a str>,
