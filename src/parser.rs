@@ -1,5 +1,7 @@
 mod stringify;
 
+use self::stringify::into_trait;
+
 use super::lexer::{Block, Field, Kind, Scalar};
 use stringify::{from_field, into_struct};
 
@@ -22,13 +24,13 @@ fn parse_fields(fields: Vec<Field>, depth: u8) -> String {
     .join(",\n")
 }
 
-fn unwrap_block(block: Block, depth: u8) -> String {
+fn unwrap_block(block: Block, depth: u8) -> Option<String> {
   let id = block.identifier.unwrap_or_default();
 
   match block.kind {
-    Kind::Service(fields) => into_struct(id, fields, depth),
-    Kind::Message(fields) => into_struct(id, fields, depth),
-    _ => String::new()
+    Kind::Service(fields) => Some(into_trait(id, fields, depth)),
+    Kind::Message(fields) => Some(into_struct(id, fields, depth)),
+    _ => None
   }
 }
 
@@ -36,7 +38,7 @@ pub fn translate(blocks: Vec<Block>) -> String {
   blocks
     .iter()
     .cloned()
-    .map(|v| unwrap_block(v, 0))
+    .filter_map(|v| unwrap_block(v, 0))
     .collect::<Vec<String>>()
     .join("\n\n")
 }
