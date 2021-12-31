@@ -30,7 +30,7 @@ fn unwrap_block(block: Block, depth: u8) -> Option<String> {
   match block.kind {
     Kind::Service(fields) => Some(into_trait(id, fields, depth)),
     Kind::Message(fields) => Some(into_struct(id, fields, depth)),
-    Kind::Package(name) => Some(into_mod(id, fields, depth)),
+    // Kind::Package(name) => Some(into_mod(id, fields, depth)),
     _ => None
   }
 }

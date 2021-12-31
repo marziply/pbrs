@@ -25,7 +25,7 @@ pub fn from_field(field: Field, depth: u8) -> String {
   }
 }
 
-pub fn into_trait(identifier: String, fields: Vec<Field>, depth: u8) -> String {
+pub fn into_trait(identifier: &str, fields: Vec<Field>, depth: u8) -> String {
   format!(
     "{}pub trait {} {{\n{}\n{}}}",
     indent(depth),
@@ -35,11 +35,7 @@ pub fn into_trait(identifier: String, fields: Vec<Field>, depth: u8) -> String {
   )
 }
 
-pub fn into_struct(
-  identifier: String,
-  fields: Vec<Field>,
-  depth: u8
-) -> String {
+pub fn into_struct(identifier: &str, fields: Vec<Field>, depth: u8) -> String {
   format!(
     "{}pub struct {} {{\n{}\n{}}}",
     indent(depth),
@@ -49,7 +45,7 @@ pub fn into_struct(
   )
 }
 
-pub fn into_mod(identifier: String, fields: Vec<Field>, depth: u8) -> String {
+pub fn into_mod(identifier: &str, fields: Vec<Field>, depth: u8) -> String {
   format!(
     "{}pub mod {} {{\n{}\n{}}}",
     indent(depth),

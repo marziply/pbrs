@@ -1,8 +1,6 @@
 mod identifier;
-mod tokenise;
 
-pub use identifier::*;
-use identifier::{Block, Identifier};
+pub use identifier::{Block, Identifier, *};
 use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;
@@ -12,11 +10,11 @@ pub type TokenChildren<'a> = Option<Vec<TokenGroup<'a>>>;
 #[derive(Clone)]
 pub struct TokenGroup<'a>(pub Vec<&'a str>, pub TokenChildren<'a>);
 
-#[derive(Clone)]
-pub struct Graph {
-  pub blocks: Vec<Block>,
-  pub package: Option<String>
-}
+// #[derive(Clone)]
+// pub struct Graph {
+//   pub blocks: Vec<Block>,
+//   pub package: Option<String>
+// }
 
 #[derive(Default)]
 struct Node<'a> {
@@ -64,7 +62,7 @@ where
   Some(node.groups)
 }
 
-fn build_blocks<'a>(group: Vec<TokenGroup<'a>>) -> Vec<Block> {
+fn into_blocks<'a>(group: Vec<TokenGroup<'a>>) -> Vec<Block> {
   group
     .iter()
     .cloned()
@@ -79,15 +77,12 @@ fn build_blocks<'a>(group: Vec<TokenGroup<'a>>) -> Vec<Block> {
     .collect()
 }
 
-pub fn translate<'a>(input: String) -> Result<Vec<Block>, Box<dyn Error>> {
-  let stripped = tokenise::strip_comments(&input)?;
-  let extracted = tokenise::extract_tokens(&stripped)?;
-  let mut tokens = extracted
+pub fn translate<'a>(input: Vec<&'a str>) -> Vec<Block<'a>> {
+  let mut tokens = input
     .iter()
     .cloned()
     .map(|v| Rc::new(v));
   let groups = group_tokens(&mut tokens);
-  let blocks = build_blocks(groups.unwrap());
 
-  Ok(blocks)
+  into_blocks(groups.unwrap())
 }

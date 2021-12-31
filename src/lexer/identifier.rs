@@ -3,9 +3,9 @@ use super::TokenChildren;
 // Protobuf "kinds" to represent each type of element available within the
 // syntax
 #[derive(Clone)]
-pub enum Kind {
-  Service(Vec<Field>),
-  Message(Vec<Field>),
+pub enum Kind<'a> {
+  Service(Vec<Field<'a>>),
+  Message(Vec<Field<'a>>),
   Package(String),
   Syntax(String),
   Unknown
@@ -27,8 +27,8 @@ pub struct Rpc {
 // Available field types within kind blocks, AKA anything enclosed in "{}",
 // including other blocks as this is valid syntax in Protobuf
 #[derive(Clone)]
-pub enum Field {
-  Block(Block),
+pub enum Field<'a> {
+  Block(Block<'a>),
   Property(Property),
   Rpc(Rpc)
 }
@@ -44,9 +44,9 @@ pub enum Scalar {
 // Any "block" of code, which can be either a simple expression or a scoped
 // block of code that's wrapped with "{}"
 #[derive(Clone)]
-pub struct Block {
-  pub identifier: Option<String>,
-  pub kind: Kind
+pub struct Block<'a> {
+  pub identifier: Option<&'a str>,
+  pub kind: Kind<'a>
 }
 
 pub struct Identifier<'a> {
@@ -54,14 +54,14 @@ pub struct Identifier<'a> {
   pub children: TokenChildren<'a>
 }
 
-impl<'a> From<Identifier<'a>> for (Option<String>, Kind) {
+impl<'a> From<Identifier<'a>> for (Option<&'a str>, Kind<'a>) {
   fn from(value: Identifier<'a>) -> Self {
     value.kind()
   }
 }
 
-impl<'a> From<Identifier<'a>> for Field {
-  fn from(value: Identifier<'a>) -> Field {
+impl<'a> From<Identifier<'a>> for Field<'a> {
+  fn from(value: Identifier<'a>) -> Field<'a> {
     value.field()
   }
 }
@@ -88,7 +88,7 @@ impl<'a> Identifier<'a> {
     }
   }
 
-  fn field(self) -> Field {
+  fn field(self) -> Field<'a> {
     match self.tokens[0] {
       "message" | "service" => {
         let (identifier, kind) = self.kind();
@@ -112,10 +112,10 @@ impl<'a> Identifier<'a> {
     }
   }
 
-  fn kind(self) -> (Option<String>, Kind) {
+  fn kind(self) -> (Option<&'a str>, Kind<'a>) {
     match self.tokens[0] {
       id @ ("service" | "message") => {
-        let name = Some(self.tokens[1].to_string());
+        let name = Some(self.tokens[1]);
         let fields = self
           .children
           .unwrap_or_default()
