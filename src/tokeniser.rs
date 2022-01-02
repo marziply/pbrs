@@ -26,7 +26,7 @@ fn into_tokens<'a>(raw_str: &str) -> TokenVector<String> {
   Ok(result)
 }
 
-pub fn translate<'a>(input: &str) -> TokenVector<'a, String> {
+pub fn translate<'a>(input: &str) -> TokenVector<String> {
   let stripped = strip_comments(input)?;
   let tokens = into_tokens(&stripped)?;
 
