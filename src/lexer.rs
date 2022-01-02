@@ -77,11 +77,10 @@ fn into_blocks<'a>(group: Vec<TokenGroup<'a>>) -> Vec<Block> {
     .collect()
 }
 
-pub fn translate<'a>(input: Vec<&'a str>) -> Vec<Block<'a>> {
+pub fn translate<'a>(input: &'a Vec<String>) -> Vec<Block<'a>> {
   let mut tokens = input
     .iter()
-    .cloned()
-    .map(|v| Rc::new(v));
+    .map(|v| Rc::new(v.as_str()));
   let groups = group_tokens(&mut tokens);
 
   into_blocks(groups.unwrap())
