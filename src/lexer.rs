@@ -66,7 +66,7 @@ fn into_blocks<'a>(group: Vec<TokenGroup<'a>>) -> Vec<Block> {
     .iter()
     .cloned()
     .map(|TokenGroup(tokens, children)| {
-      let (identifier, kind) = Identifier::create(tokens, children);
+      let (identifier, kind) = Identifier::identify(tokens, children);
 
       Block {
         identifier,

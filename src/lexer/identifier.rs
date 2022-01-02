@@ -11,19 +11,6 @@ pub enum Kind<'a> {
   Unknown
 }
 
-#[derive(Clone)]
-pub struct Property<'a> {
-  pub name: &'a str,
-  pub r#type: Scalar,
-  pub value: i32
-}
-
-#[derive(Clone)]
-pub struct Rpc<'a> {
-  pub name: &'a str,
-  pub params: (&'a str, &'a str)
-}
-
 // Available field types within kind blocks, AKA anything enclosed in "{}",
 // including other blocks as this is valid syntax in Protobuf
 #[derive(Clone)]
@@ -39,6 +26,19 @@ pub enum Scalar {
   Int32,
   Bool,
   r#String
+}
+
+#[derive(Clone)]
+pub struct Property<'a> {
+  pub name: &'a str,
+  pub r#type: Scalar,
+  pub value: i32
+}
+
+#[derive(Clone)]
+pub struct Rpc<'a> {
+  pub name: &'a str,
+  pub params: (&'a str, &'a str)
 }
 
 // Any "block" of code, which can be either a simple expression or a scoped
@@ -67,7 +67,7 @@ impl<'a> From<Identifier<'a>> for Field<'a> {
 }
 
 impl<'a> Identifier<'a> {
-  pub fn create<T>(tokens: Vec<&'a str>, children: TokenChildren<'a>) -> T
+  pub fn identify<T>(tokens: Vec<&'a str>, children: TokenChildren<'a>) -> T
   where
     T: From<Identifier<'a>>
   {
@@ -121,7 +121,7 @@ impl<'a> Identifier<'a> {
           .unwrap_or_default()
           .iter()
           .cloned()
-          .map(|v| Identifier::create(v.0, v.1))
+          .map(|v| Identifier::identify(v.0, v.1))
           .collect();
 
         match id {
