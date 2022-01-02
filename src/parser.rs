@@ -1,45 +1,140 @@
 mod stringify;
 
-use self::stringify::into_trait;
-
 use super::lexer::{Block, Field, Kind, Scalar};
-use stringify::{from_field, into_struct};
+use std::collections::HashMap;
+use stringify::indent;
 
-fn parse_prop(scalar: Scalar) -> String {
-  let result = match scalar {
-    Scalar::Int32 => "i32",
-    Scalar::Bool => "bool",
-    Scalar::r#String => "string"
-  };
-
-  result.to_string()
+#[derive(Default)]
+struct Parser<'a> {
+  config: HashMap<&'a str, &'a str>,
+  depth: u8
 }
 
-fn parse_fields(fields: Vec<Field>, depth: u8) -> String {
-  fields
-    .iter()
-    .cloned()
-    .map(|v| from_field(v, depth))
-    .collect::<Vec<String>>()
-    .join(",\n")
-}
+impl<'a> Parser<'a> {
+  pub fn parse(&mut self, blocks: Vec<Block<'a>>) -> String {
+    let result = blocks
+      .iter()
+      .cloned()
+      .filter_map(|v| self.unwrap_block(v))
+      .collect::<Vec<String>>()
+      .join("\n\n");
 
-fn unwrap_block(block: Block, depth: u8) -> Option<String> {
-  let id = block.identifier.unwrap_or_default();
+    self.parse_config(result)
+  }
 
-  match block.kind {
-    Kind::Service(fields) => Some(into_trait(id, fields, depth)),
-    Kind::Message(fields) => Some(into_struct(id, fields, depth)),
-    // Kind::Package(name) => Some(into_mod(id, fields, depth)),
-    _ => None
+  fn parse_config(&self, result: String) -> String {
+    self
+      .config
+      .iter()
+      .fold(result, |acc, (key, value)| match *key {
+        "package" => format!("pub mod {} {{\n{}\n}}", value, acc),
+        "syntax" => acc,
+        _ => acc
+      })
+  }
+
+  fn unwrap_block(&mut self, block: Block<'a>) -> Option<String> {
+    let id = block.identifier.unwrap_or_default();
+
+    match block.kind {
+      Kind::Service(fields) => Some(self.into_trait(id, fields)),
+      Kind::Message(fields) => Some(self.into_struct(id, fields)),
+      Kind::Package(name) => {
+        self.config.insert("package", name);
+
+        None
+      }
+      Kind::Syntax(syn) => {
+        self.config.insert("syntax", syn);
+
+        None
+      }
+      _ => None
+    }
+  }
+
+  pub fn from_field(&mut self, field: Field<'a>) -> String {
+    match field {
+      Field::Block(block) => self
+        .unwrap_block(block)
+        .unwrap_or_default(),
+      Field::Property(prop) => format!(
+        "{}pub {}: {}",
+        indent(self.depth),
+        prop.name,
+        self.parse_prop(prop.r#type)
+      ),
+      Field::Rpc(rpc) => format!(
+        "{}fn {}(req: {}) -> {} {{\n{}}}",
+        indent(self.depth),
+        rpc.name,
+        rpc.params.0,
+        rpc.params.1,
+        indent(self.depth)
+      )
+    }
+  }
+
+  fn parse_prop(&self, scalar: Scalar) -> String {
+    let result = match scalar {
+      Scalar::Int32 => "i32",
+      Scalar::Bool => "bool",
+      Scalar::r#String => "string"
+    };
+
+    result.to_string()
+  }
+
+  fn parse_fields(&mut self, fields: &Vec<Field<'a>>) -> String {
+    fields
+      .iter()
+      .cloned()
+      .map(|v| self.from_field(v))
+      .collect::<Vec<String>>()
+      .join(",\n")
+  }
+
+  fn indent(&mut self, callback: impl Fn(&mut Self) -> String) -> String {
+    self.depth += 1;
+
+    let result = callback(self);
+
+    self.depth -= 1;
+
+    result
+  }
+
+  fn into_trait(&mut self, identifier: &str, fields: Vec<Field<'a>>) -> String {
+    self.indent(|s| {
+      format!(
+        "{}pub trait {} {{\n{}\n{}}}",
+        indent(s.depth),
+        identifier,
+        s.parse_fields(&fields),
+        indent(s.depth)
+      )
+    })
+  }
+
+  fn into_struct(
+    &mut self,
+    identifier: &str,
+    fields: Vec<Field<'a>>
+  ) -> String {
+    self.indent(|s| {
+      format!(
+        "{}pub struct {} {{\n{}\n{}}}",
+        indent(s.depth),
+        identifier,
+        s.parse_fields(&fields),
+        indent(s.depth)
+      )
+    })
   }
 }
 
 pub fn translate(blocks: Vec<Block>) -> String {
-  blocks
-    .iter()
-    .cloned()
-    .filter_map(|v| unwrap_block(v, 0))
-    .collect::<Vec<String>>()
-    .join("\n\n")
+  let mut parser = Parser::default();
+
+  parser.parse(blocks)
 }
