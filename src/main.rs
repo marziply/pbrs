@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     .nth(1)
     .expect("Missing file path argument");
   let file = read_to_string(path)?;
-  let tokens = tokeniser::translate(file)?;
+  let tokens = tokeniser::translate(&file)?;
   let blocks = lexer::translate(&tokens);
   let code = parser::translate(blocks);
 
