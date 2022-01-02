@@ -45,12 +45,12 @@ pub fn into_struct(identifier: &str, fields: Vec<Field>, depth: u8) -> String {
   )
 }
 
-pub fn into_mod(identifier: &str, fields: Vec<Field>, depth: u8) -> String {
-  format!(
-    "{}pub mod {} {{\n{}\n{}}}",
-    indent(depth),
-    identifier,
-    parse_fields(fields, depth + 1),
-    indent(depth)
-  )
-}
+// pub fn into_mod(identifier: &str, fields: Vec<Field>, depth: u8) -> String {
+//   format!(
+//     "{}pub mod {} {{\n{}\n{}}}",
+//     indent(depth),
+//     identifier,
+//     parse_fields(fields, depth + 1),
+//     indent(depth)
+//   )
+// }

@@ -3,7 +3,7 @@ mod stringify;
 use self::stringify::into_trait;
 
 use super::lexer::{Block, Field, Kind, Scalar};
-use stringify::{from_field, into_mod, into_struct};
+use stringify::{from_field, into_struct};
 
 fn parse_prop(scalar: Scalar) -> String {
   let result = match scalar {

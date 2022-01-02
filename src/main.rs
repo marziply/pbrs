@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn Error>> {
   let blocks = lexer::translate(&tokens);
   let code = parser::translate(blocks);
 
-  println!("{}", code);
+  println!("\n{}", code);
 
   Ok(())
 }

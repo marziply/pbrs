@@ -6,22 +6,22 @@ use super::TokenChildren;
 pub enum Kind<'a> {
   Service(Vec<Field<'a>>),
   Message(Vec<Field<'a>>),
-  Package(String),
-  Syntax(String),
+  Package(&'a str),
+  Syntax(&'a str),
   Unknown
 }
 
 #[derive(Clone)]
-pub struct Property {
-  pub name: String,
+pub struct Property<'a> {
+  pub name: &'a str,
   pub r#type: Scalar,
   pub value: i32
 }
 
 #[derive(Clone)]
-pub struct Rpc {
-  pub name: String,
-  pub params: (String, String)
+pub struct Rpc<'a> {
+  pub name: &'a str,
+  pub params: (&'a str, &'a str)
 }
 
 // Available field types within kind blocks, AKA anything enclosed in "{}",
@@ -29,8 +29,8 @@ pub struct Rpc {
 #[derive(Clone)]
 pub enum Field<'a> {
   Block(Block<'a>),
-  Property(Property),
-  Rpc(Rpc)
+  Property(Property<'a>),
+  Rpc(Rpc<'a>)
 }
 
 // Basic scalar types available for fields within a block
@@ -99,12 +99,12 @@ impl<'a> Identifier<'a> {
         })
       }
       "rpc" => Field::Rpc(Rpc {
-        name: self.token(1),
-        params: (self.token(3), self.token(7))
+        name: self.tokens[1],
+        params: (self.tokens[3], self.tokens[7])
       }),
       val => Field::Property(Property {
         r#type: self.scalar(val),
-        name: self.token(1),
+        name: self.tokens[1],
         value: self.tokens[3]
           .parse()
           .expect("Invalid value for field")
@@ -130,13 +130,9 @@ impl<'a> Identifier<'a> {
           _ => unreachable!()
         }
       }
-      "syntax" => (None, Kind::Syntax(self.tokens[3].to_string())),
-      "package" => (None, Kind::Package(self.tokens[1].to_string())),
+      "syntax" => (None, Kind::Syntax(self.tokens[3])),
+      "package" => (None, Kind::Package(self.tokens[1])),
       _ => (None, Kind::Unknown)
     }
-  }
-
-  fn token(&self, index: usize) -> String {
-    self.tokens[index].to_string()
   }
 }
