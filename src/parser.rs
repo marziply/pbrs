@@ -1,10 +1,11 @@
-pub mod stringify;
-
 use super::lexer::{Block, Field, Kind, Scalar};
 use heck::ToSnakeCase;
 use regex::RegexBuilder;
 use std::collections::HashMap;
-use stringify::indent;
+
+pub fn indent(depth: u8) -> String {
+  (0..depth).map(|_| "  ").collect()
+}
 
 impl From<Scalar> for String {
   fn from(value: Scalar) -> String {
