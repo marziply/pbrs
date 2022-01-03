@@ -38,6 +38,7 @@ impl<'a> Parser<'a> {
   }
 
   fn result(&mut self, input: String) -> String {
+    // Replacer for adding indentation to each line
     let re = RegexBuilder::new(r"^")
       .multi_line(true)
       .build()
@@ -68,6 +69,7 @@ impl<'a> Parser<'a> {
     let id = block.identifier.unwrap_or_default();
 
     match block.kind {
+      Kind::Message(fields) => Some(self.scope("struct", id, fields)),
       Kind::Service(fields) => {
         self
           .root
@@ -75,7 +77,6 @@ impl<'a> Parser<'a> {
 
         Some(self.scope("trait", id, fields))
       }
-      Kind::Message(fields) => Some(self.scope("struct", id, fields)),
       Kind::Package(name) => {
         self.config.insert("package", name);
 
