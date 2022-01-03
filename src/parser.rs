@@ -4,10 +4,40 @@ use super::lexer::{Block, Field, Kind, Scalar};
 use std::collections::HashMap;
 use stringify::indent;
 
+trait ItemParser<S = String> {
+  type Input;
+
+  fn parse(&mut self, item: Self::Input) -> S;
+}
+
 #[derive(Default)]
 struct Parser<'a> {
   config: HashMap<&'a str, &'a str>,
   depth: u8
+}
+
+impl<'a> ItemParser<Option<String>> for Parser<'a> {
+  type Input = Block<'a>;
+
+  fn parse(&mut self, item: Self::Input) -> Option<String> {
+    let id = item.identifier.unwrap_or_default();
+
+    match item.kind {
+      Kind::Service(fields) => Some(self.into_trait(id, fields)),
+      Kind::Message(fields) => Some(self.into_struct(id, fields)),
+      Kind::Package(name) => {
+        self.config.insert("package", name);
+
+        None
+      }
+      Kind::Syntax(syn) => {
+        self.config.insert("syntax", syn);
+
+        None
+      }
+      _ => None
+    }
+  }
 }
 
 impl<'a> Parser<'a> {
@@ -15,7 +45,7 @@ impl<'a> Parser<'a> {
     let result = blocks
       .iter()
       .cloned()
-      .filter_map(|v| self.unwrap_block(v))
+      .filter_map(|v| self.parse_block(v))
       .collect::<Vec<String>>()
       .join("\n\n");
 
@@ -33,7 +63,16 @@ impl<'a> Parser<'a> {
       })
   }
 
-  fn unwrap_block(&mut self, block: Block<'a>) -> Option<String> {
+  fn parse_fields(&mut self, fields: &Vec<Field<'a>>) -> String {
+    fields
+      .iter()
+      .cloned()
+      .map(|v| self.from_field(v))
+      .collect::<Vec<String>>()
+      .join(",\n")
+  }
+
+  fn parse_block(&mut self, block: Block<'a>) -> Option<String> {
     let id = block.identifier.unwrap_or_default();
 
     match block.kind {
@@ -53,45 +92,40 @@ impl<'a> Parser<'a> {
     }
   }
 
-  pub fn from_field(&mut self, field: Field<'a>) -> String {
+  fn from_field(&mut self, field: Field<'a>) -> String {
     match field {
       Field::Block(block) => self
-        .unwrap_block(block)
+        .parse_block(block)
         .unwrap_or_default(),
-      Field::Property(prop) => format!(
-        "{}pub {}: {}",
-        indent(self.depth),
-        prop.name,
-        self.parse_prop(prop.r#type)
-      ),
-      Field::Rpc(rpc) => format!(
-        "{}fn {}(req: {}) -> {} {{\n{}}}",
-        indent(self.depth),
-        rpc.name,
-        rpc.params.0,
-        rpc.params.1,
-        indent(self.depth)
-      )
+      Field::Property(prop) => self.indent(|s| {
+        format!(
+          "{}pub {}: {}",
+          indent(s.depth),
+          prop.name,
+          s.from_scalar(&prop.r#type)
+        )
+      }),
+      Field::Rpc(rpc) => self.indent(|s| {
+        format!(
+          "{}fn {}(req: {}) -> {} {{\n{}}}",
+          indent(s.depth),
+          rpc.name,
+          rpc.params.0,
+          rpc.params.1,
+          indent(s.depth)
+        )
+      })
     }
   }
 
-  fn parse_prop(&self, scalar: Scalar) -> String {
+  fn from_scalar(&self, scalar: &Scalar) -> String {
     let result = match scalar {
       Scalar::Int32 => "i32",
       Scalar::Bool => "bool",
-      Scalar::r#String => "string"
+      Scalar::r#String => "String"
     };
 
     result.to_string()
-  }
-
-  fn parse_fields(&mut self, fields: &Vec<Field<'a>>) -> String {
-    fields
-      .iter()
-      .cloned()
-      .map(|v| self.from_field(v))
-      .collect::<Vec<String>>()
-      .join(",\n")
   }
 
   fn indent(&mut self, callback: impl Fn(&mut Self) -> String) -> String {
@@ -104,27 +138,25 @@ impl<'a> Parser<'a> {
     result
   }
 
-  fn into_trait(&mut self, identifier: &str, fields: Vec<Field<'a>>) -> String {
-    self.indent(|s| {
-      format!(
-        "{}pub trait {} {{\n{}\n{}}}",
-        indent(s.depth),
-        identifier,
-        s.parse_fields(&fields),
-        indent(s.depth)
-      )
-    })
+  fn into_trait(&mut self, id: &str, fields: Vec<Field<'a>>) -> String {
+    self.scope("trait", id, fields)
   }
 
-  fn into_struct(
+  fn into_struct(&mut self, id: &str, fields: Vec<Field<'a>>) -> String {
+    self.scope("struct", id, fields)
+  }
+
+  fn scope(
     &mut self,
+    descriptor: &str,
     identifier: &str,
     fields: Vec<Field<'a>>
   ) -> String {
     self.indent(|s| {
       format!(
-        "{}pub struct {} {{\n{}\n{}}}",
+        "{}pub {} {} {{\n{}\n{}}}",
         indent(s.depth),
+        descriptor,
         identifier,
         s.parse_fields(&fields),
         indent(s.depth)

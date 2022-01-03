@@ -30,8 +30,8 @@ pub enum Scalar {
 
 #[derive(Clone)]
 pub struct Property<'a> {
-  pub name: &'a str,
   pub r#type: Scalar,
+  pub name: &'a str,
   pub value: i32
 }
 
