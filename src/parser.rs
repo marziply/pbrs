@@ -102,12 +102,12 @@ impl<'a> Parser<'a> {
 
         self.root.push(struct_block);
 
-        format!("{}pub {}: {}", indent(1), id.to_snake_case(), id)
+        self.format_property(id.to_snake_case(), id.to_string())
       }
       Field::Property(prop) => {
         let r#type: String = prop.r#type.clone().into();
 
-        format!("{}pub {}: {}", indent(1), prop.name, r#type)
+        self.format_property(prop.name.to_string(), r#type)
       }
       Field::Rpc(rpc) => {
         format!(
@@ -121,6 +121,10 @@ impl<'a> Parser<'a> {
         )
       }
     }
+  }
+
+  fn format_property(&self, name: String, id: String) -> String {
+    format!("{}pub {}: {}", indent(1), name, id)
   }
 
   fn scope(&mut self, desc: &str, id: &str, fields: Vec<Field<'a>>) -> String {
