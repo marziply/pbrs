@@ -32,10 +32,15 @@ impl<'a> Parser<'a> {
       .cloned()
       .filter_map(|v| self.parse_block(v))
       .collect::<Vec<String>>();
+    let total = self
+      .root
+      .iter()
+      .cloned()
+      .chain(items)
+      .collect::<Vec<String>>()
+      .join("\n\n");
 
-    self.root.extend(items);
-
-    self.result(self.root.join("\n\n"))
+    self.result(total)
   }
 
   fn result(&mut self, input: String) -> String {
@@ -50,33 +55,24 @@ impl<'a> Parser<'a> {
         format!(
           "pub mod {} {{\n{}\n}}",
           name,
-          re.replace_all(input.as_str(), indent(1))
+          re.replace_all(&input, indent(1))
         )
       }
       None => self.root.join("\n\n")
     }
   }
 
-  fn parse_fields(&mut self, fields: &Vec<Field<'a>>) -> String {
-    fields
-      .iter()
-      .cloned()
-      .map(|v| self.from_field(v))
-      .collect::<Vec<String>>()
-      .join(",\n")
-  }
-
   fn parse_block(&mut self, block: Block<'a>) -> Option<String> {
     let id = block.identifier.unwrap_or_default();
 
     match block.kind {
-      Kind::Message(fields) => Some(self.scope("struct", id, fields)),
+      Kind::Message(fields) => Some(self.format_block("struct", id, fields)),
       Kind::Service(fields) => {
         self
           .root
           .push(format!("pub struct {}Client {{}}", id));
 
-        Some(self.scope("trait", id, fields))
+        Some(self.format_block("trait", id, fields))
       }
       Kind::Package(name) => {
         self.config.insert("package", name);
@@ -92,7 +88,7 @@ impl<'a> Parser<'a> {
     }
   }
 
-  fn from_field(&mut self, field: Field<'a>) -> String {
+  fn format_field(&mut self, field: Field<'a>) -> String {
     match field {
       Field::Block(block) => {
         let id = block.identifier.unwrap_or_default();
@@ -127,8 +123,20 @@ impl<'a> Parser<'a> {
     format!("{}pub {}: {}", indent(1), name, id)
   }
 
-  fn scope(&mut self, desc: &str, id: &str, fields: Vec<Field<'a>>) -> String {
-    format!("pub {} {} {{\n{}\n}}", desc, id, self.parse_fields(&fields))
+  fn format_block(
+    &mut self,
+    desc: &str,
+    id: &str,
+    fields: Vec<Field<'a>>
+  ) -> String {
+    let result = fields
+      .iter()
+      .cloned()
+      .map(|v| self.format_field(v))
+      .collect::<Vec<String>>()
+      .join(",\n");
+
+    format!("pub {} {} {{\n{}\n}}", desc, id, result)
   }
 }
 
