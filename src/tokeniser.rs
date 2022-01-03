@@ -1,4 +1,4 @@
-use fancy_regex::{Error as RegexError, Regex};
+use regex::{Error as RegexError, Regex};
 
 type TokenResult<T> = Result<T, RegexError>;
 
@@ -16,8 +16,7 @@ fn into_tokens<'a>(raw_str: &str) -> TokenVector<String> {
   let result = re
     .captures_iter(raw_str)
     .flat_map(|v| {
-      v.unwrap()
-        .iter()
+      v.iter()
         .map(|i| i.unwrap().as_str().to_string())
         .collect::<Vec<String>>()
     })

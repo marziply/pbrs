@@ -9,12 +9,6 @@ pub type TokenChildren<'a> = Option<Vec<TokenGroup<'a>>>;
 #[derive(Clone)]
 pub struct TokenGroup<'a>(pub Vec<&'a str>, pub TokenChildren<'a>);
 
-#[derive(Clone)]
-pub struct Graph<'a> {
-  pub blocks: Vec<Block<'a>>,
-  pub package: Option<String>
-}
-
 #[derive(Default)]
 struct Node<'a> {
   tokens: RefCell<Vec<&'a str>>,
