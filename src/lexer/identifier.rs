@@ -88,30 +88,6 @@ impl<'a> Identifier<'a> {
     }
   }
 
-  fn field(self) -> Field<'a> {
-    match self.tokens[0] {
-      "message" | "service" => {
-        let (identifier, kind) = self.kind();
-
-        Field::Block(Block {
-          identifier,
-          kind
-        })
-      }
-      "rpc" => Field::Rpc(Rpc {
-        name: self.tokens[1],
-        params: (self.tokens[3], self.tokens[7])
-      }),
-      val => Field::Property(Property {
-        r#type: self.scalar(val),
-        name: self.tokens[1],
-        value: self.tokens[3]
-          .parse()
-          .expect("Invalid value for field")
-      })
-    }
-  }
-
   fn kind(self) -> (Option<&'a str>, Kind<'a>) {
     match self.tokens[0] {
       id @ ("service" | "message") => {
@@ -135,11 +111,43 @@ impl<'a> Identifier<'a> {
       _ => (None, Kind::Unknown)
     }
   }
+
+  fn field(self) -> Field<'a> {
+    match self.tokens[0] {
+      "message" | "service" => {
+        let (identifier, kind) = self.kind();
+
+        Field::Block(Block {
+          identifier,
+          kind
+        })
+      }
+      "rpc" => Field::Rpc(Rpc {
+        name: self.tokens[1],
+        params: (self.tokens[3], self.tokens[7])
+      }),
+      val => Field::Property(Property {
+        r#type: self.scalar(val),
+        name: self.tokens[1],
+        value: self.tokens[3]
+          .parse()
+          .expect("Invalid value for field")
+      })
+    }
+  }
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  #[test]
+  fn identify_kind() {
+    let tokens = vec!["message", "Foo", "{", "}"];
+    let result = Identifier::identify::<(Option<&str>, Kind)>(tokens, None);
+
+    assert_eq!(result, (Some("Foo"), Kind::Message(Vec::new())));
+  }
 
   #[test]
   fn identify_field() {
@@ -155,7 +163,4 @@ mod tests {
       })
     );
   }
-
-  #[test]
-  fn identify_kind() {}
 }
