@@ -27,11 +27,14 @@ struct Parser<'a> {
 
 impl<'a> Parser<'a> {
   pub fn parse(&mut self, blocks: Vec<Block<'a>>) -> String {
+    // Collect and parse all blocks of code into an array of String
     let items = blocks
       .iter()
       .cloned()
       .filter_map(|v| self.parse_block(v))
       .collect::<Vec<String>>();
+    // Join the blocks onto the root collection of structs so all nested
+    // structs are placed at the top of the rendered output
     let total = self
       .root
       .iter()
@@ -50,6 +53,7 @@ impl<'a> Parser<'a> {
       .build()
       .unwrap();
 
+    // If the package has been defined, wrap the result in a mod block
     match self.config.get("package") {
       Some(name) => {
         format!(
@@ -68,6 +72,9 @@ impl<'a> Parser<'a> {
     match block.kind {
       Kind::Message(fields) => Some(self.format_block("struct", id, fields)),
       Kind::Service(fields) => {
+        // While Protobuf supports nested message structures, Rust isn't so
+        // forgiving - nested messages need to be moved to the root depth
+        // where they can be referred to as types in child messages
         self
           .root
           .push(format!("pub struct {}Client {{}}", id));
@@ -96,6 +103,8 @@ impl<'a> Parser<'a> {
           .parse_block(block)
           .unwrap_or_default();
 
+        // Push the generated struct into the root collection so it can be
+        // rendered at the top of the output
         self.root.push(struct_block);
 
         self.format_property(id.to_snake_case(), id.to_string())
