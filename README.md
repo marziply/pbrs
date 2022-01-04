@@ -1,5 +1,11 @@
 # Protobuf in Rust
 
+### Running
+
+```sh
+cargo run assets/message.proto
+```
+
 ## Input to output steps
 
 - Read file input
@@ -14,7 +20,7 @@
 - service
 - message
 
-### Meta
+### Config
 
 - syntax
 - package
