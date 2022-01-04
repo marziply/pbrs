@@ -31,3 +31,61 @@ pub fn translate<'a>(input: &str) -> TokenVector<String> {
 
   Ok(tokens)
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn comments_removed() -> Result<(), RegexError> {
+    let input = "
+      // comment
+      message Foo {
+        string bar = 1;
+      }
+    ";
+    let result = strip_comments(input)?;
+
+    assert!(!result.contains("// comment"));
+
+    Ok(())
+  }
+
+  #[test]
+  fn translate_service() -> Result<(), RegexError> {
+    let input = "
+      service Foo {
+        rpc Bar (Request) returns (Response) {}
+      }
+    ";
+    let result = translate(input)?;
+    let expect = vec![
+      "service", "Foo", "{", "rpc", "Bar", "(", "Request", ")", "returns", "(",
+      "Response", ")", "{", "}", "}",
+    ];
+
+    assert_eq!(result, expect);
+
+    Ok(())
+  }
+
+  #[test]
+  fn translate_message() -> Result<(), RegexError> {
+    let input = "
+      message Foo {
+        int32 a = 1;
+        string b = 2;
+        bool c = 3;
+      }
+    ";
+    let result = translate(input)?;
+    let expect = vec![
+      "message", "Foo", "{", "int32", "a", "=", "1", ";", "string", "b", "=",
+      "2", ";", "bool", "c", "=", "3", ";", "}",
+    ];
+
+    assert_eq!(result, expect);
+
+    Ok(())
+  }
+}
