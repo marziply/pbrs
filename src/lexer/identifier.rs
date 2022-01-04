@@ -2,7 +2,7 @@ use super::TokenChildren;
 
 // Protobuf "kinds" to represent each type of element available within the
 // syntax
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Kind<'a> {
   Service(Vec<Field<'a>>),
   Message(Vec<Field<'a>>),
@@ -13,7 +13,7 @@ pub enum Kind<'a> {
 
 // Available field types within kind blocks, AKA anything enclosed in "{}",
 // including other blocks as this is valid syntax in Protobuf
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Field<'a> {
   Block(Block<'a>),
   Property(Property<'a>),
@@ -21,21 +21,21 @@ pub enum Field<'a> {
 }
 
 // Basic scalar types available for fields within a block
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Scalar {
   Int32,
   Bool,
   r#String
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Property<'a> {
   pub r#type: Scalar,
   pub name: &'a str,
   pub value: i32
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Rpc<'a> {
   pub name: &'a str,
   pub params: (&'a str, &'a str)
@@ -43,7 +43,7 @@ pub struct Rpc<'a> {
 
 // Any "block" of code, which can be either a simple expression or a scoped
 // block of code that's wrapped with "{}"
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Block<'a> {
   pub identifier: Option<&'a str>,
   pub kind: Kind<'a>
@@ -61,7 +61,7 @@ impl<'a> From<Identifier<'a>> for (Option<&'a str>, Kind<'a>) {
 }
 
 impl<'a> From<Identifier<'a>> for Field<'a> {
-  fn from(value: Identifier<'a>) -> Field<'a> {
+  fn from(value: Identifier<'a>) -> Self {
     value.field()
   }
 }
@@ -135,4 +135,27 @@ impl<'a> Identifier<'a> {
       _ => (None, Kind::Unknown)
     }
   }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn identify_field() {
+    let tokens = vec!["int32", "foo", "=", "1", ";"];
+    let result = Identifier::identify::<Field>(tokens, None);
+
+    assert_eq!(
+      result,
+      Field::Property(Property {
+        r#type: Scalar::Int32,
+        name: "foo",
+        value: 1
+      })
+    );
+  }
+
+  #[test]
+  fn identify_kind() {}
 }

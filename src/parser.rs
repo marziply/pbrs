@@ -62,7 +62,7 @@ impl<'a> Parser<'a> {
           re.replace_all(&input, indent(1))
         )
       }
-      None => self.root.join("\n\n")
+      None => input
     }
   }
 
@@ -153,4 +153,67 @@ pub fn translate(blocks: Vec<Block>) -> String {
   let mut parser = Parser::default();
 
   parser.parse(blocks)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::lexer::{Property, Rpc};
+
+  fn create_message<'a>() -> Vec<Block<'a>> {
+    let fields = vec![Field::Property(Property {
+      r#type: Scalar::Int32,
+      name: "bar",
+      value: 1
+    })];
+
+    vec![Block {
+      identifier: Some("Foo"),
+      kind: Kind::Message(fields)
+    }]
+  }
+
+  #[test]
+  fn translate_struct() {
+    let input = create_message();
+    let result = translate(input);
+
+    assert_eq!(result, "pub struct Foo {\n  pub bar: i32\n}");
+  }
+
+  #[test]
+  fn translate_trait() {
+    let fields = vec![Field::Rpc(Rpc {
+      name: "Foo",
+      params: ("Request", "Response")
+    })];
+    let input = vec![Block {
+      identifier: Some("Bar"),
+      kind: Kind::Service(fields)
+    }];
+    let result = translate(input);
+
+    assert_eq!(
+      result,
+      "pub struct BarClient {}\n\npub trait Bar {\n  fn foo(req: Request) -> \
+       Response {\n    Response::default()\n  }\n}"
+    );
+  }
+
+  #[test]
+  fn wrap_package() {
+    let mut input = create_message();
+
+    input.push(Block {
+      identifier: None,
+      kind: Kind::Package("foobar")
+    });
+
+    let result = translate(input);
+
+    assert_eq!(
+      result,
+      "pub mod foobar {\n  pub struct Foo {\n    pub bar: i32\n  }\n}"
+    );
+  }
 }
