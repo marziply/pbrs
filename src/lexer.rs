@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 pub type TokenChildren<'a> = Option<Vec<TokenGroup<'a>>>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TokenGroup<'a>(pub Vec<&'a str>, pub TokenChildren<'a>);
 
 #[derive(Default)]
@@ -76,7 +76,7 @@ pub fn translate(input: &Vec<String>) -> Vec<Block> {
     .map(|v| Rc::new(v.as_str()));
   let groups = group_tokens(&mut tokens);
 
-  into_blocks(groups.unwrap())
+  into_blocks(groups.unwrap_or_default())
 }
 
 #[cfg(test)]
@@ -84,7 +84,31 @@ mod tests {
   use super::*;
 
   #[test]
-  fn translate_group() {
-    let input = vec![Rc::new("")];
+  fn test_group_tokens() {
+    let tokens = vec!["message", "Foo", "{", "}"];
+    let mut input = tokens
+      .iter()
+      .cloned()
+      .map(|v| Rc::new(v));
+    let result = group_tokens(&mut input).unwrap_or_default();
+
+    assert_eq!(
+      result,
+      vec![TokenGroup(vec!["message", "Foo"], Some(Vec::new()))]
+    );
+  }
+
+  #[test]
+  fn test_into_blocks() {
+    let input = vec![TokenGroup(vec!["message", "Foo"], Some(Vec::new()))];
+    let result = into_blocks(input);
+
+    assert_eq!(
+      result,
+      vec![Block {
+        identifier: Some("Foo"),
+        kind: Kind::Message(Vec::new())
+      }]
+    );
   }
 }
