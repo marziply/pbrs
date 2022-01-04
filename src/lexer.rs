@@ -55,7 +55,7 @@ where
   Some(node.groups)
 }
 
-fn into_blocks<'a>(group: Vec<TokenGroup<'a>>) -> Vec<Block> {
+fn into_blocks(group: Vec<TokenGroup>) -> Vec<Block> {
   group
     .iter()
     .cloned()
@@ -70,11 +70,21 @@ fn into_blocks<'a>(group: Vec<TokenGroup<'a>>) -> Vec<Block> {
     .collect()
 }
 
-pub fn translate<'a>(input: &'a Vec<String>) -> Vec<Block<'a>> {
+pub fn translate(input: &Vec<String>) -> Vec<Block> {
   let mut tokens = input
     .iter()
     .map(|v| Rc::new(v.as_str()));
   let groups = group_tokens(&mut tokens);
 
   into_blocks(groups.unwrap())
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn translate_group() {
+    let input = vec![Rc::new("")];
+  }
 }
