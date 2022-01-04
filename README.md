@@ -17,16 +17,13 @@ cargo run assets/message.proto
 
 ### Kind
 
-- service
-- message
-
-### Config
-
-- syntax
-- package
+- `service` as `trait` and `struct`
+- `message` as `struct`
+- `package` as `mod`
+- `syntax`
 
 ### Scalar
 
-- int32
-- bool
-- string
+- `int32` as `i32`
+- `bool` as `bool`
+- `string` as `String`
